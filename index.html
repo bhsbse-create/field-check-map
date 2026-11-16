@@ -2,72 +2,112 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffffff">
 <title>현장 체크 지도</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{
-  --bg:#ffffff; --fg:#1b1f24; --muted:#5b6470; --line:#e3e6ea; --soft:#f4f6f8;
-  --accent:#2563eb; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --office:#7c3aed;
+  --bg:#ffffff; --fg:#16191d; --muted:#626b76; --line:#e4e7eb; --soft:#f3f5f7;
+  --accent:#2563eb; --ok:#15803d; --warn:#d97706; --bad:#dc2626; --office:#7c3aed;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#15181c; --fg:#e8eaed; --muted:#a3abb5; --line:#2c3138; --soft:#1e2227;
+    --bg:#121417; --fg:#eceef1; --muted:#a0a8b3; --line:#2a2f36; --soft:#1c2025;
     --accent:#60a5fa; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --office:#a78bfa;
   }
 }
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:'Noto Sans KR',system-ui,sans-serif;font-size:15px}
-button,input,select{font:inherit;color:inherit}
-#lock{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg);z-index:3000}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:'Noto Sans KR',system-ui,sans-serif;font-size:16px;overscroll-behavior:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+
+/* 잠금 */
+#lock{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg);z-index:5000}
 #lock form{width:100%;max-width:340px}
-#lock h1{font-size:20px;margin:0 0 6px}
-#lock p{margin:0 0 16px;color:var(--muted)}
-#lock input{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);margin-bottom:10px}
-#lock button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700}
-#lockmsg{color:var(--bad);min-height:20px;margin-top:8px}
-#app{display:none;height:100%;flex-direction:column}
-#top{padding:8px 10px;border-bottom:1px solid var(--line);background:var(--bg);z-index:1000}
-#row1{display:flex;gap:6px;align-items:center}
-#q{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
-.ib{padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);white-space:nowrap}
+#lock h1{font-size:22px;margin:0 0 6px}
+#lock p{margin:0 0 18px;color:var(--muted);font-size:15px}
+#lock input{width:100%;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--soft);margin-bottom:10px;font-size:20px;letter-spacing:4px;text-align:center}
+#lock button{width:100%;padding:14px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;font-size:17px}
+#lockmsg{color:var(--bad);min-height:22px;margin-top:10px;text-align:center}
+
+/* 앱 */
+#app{display:none;position:fixed;inset:0;flex-direction:column}
+#top{padding:calc(8px + var(--safe-t)) 12px 8px;background:var(--bg);border-bottom:1px solid var(--line);z-index:1000;position:relative}
+#row1{display:flex;gap:8px}
+#q{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);font-size:16px}
+.ib{min-width:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:18px}
 #chips{display:flex;gap:6px;overflow-x:auto;padding-top:8px;scrollbar-width:none}
-.chip{padding:5px 10px;border:1px solid var(--line);border-radius:99px;background:var(--bg);white-space:nowrap;font-size:13px}
+#chips::-webkit-scrollbar{display:none}
+.chip{padding:7px 13px;border:1px solid var(--line);border-radius:99px;background:var(--bg);white-space:nowrap;font-size:14px}
 .chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 #prog{font-size:13px;color:var(--muted);padding-top:6px}
 #prog b{color:var(--fg)}
-#map{flex:1;min-height:0}
-#results{position:absolute;left:10px;right:10px;top:100%;max-height:50vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;display:none}
-#results div{padding:10px;border-bottom:1px solid var(--line);cursor:pointer}
+#results{position:absolute;left:12px;right:12px;top:calc(100% - 4px);max-height:60vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+#results div{padding:12px 14px;border-bottom:1px solid var(--line)}
 #results small{color:var(--muted)}
-#sheet{position:fixed;left:0;right:0;bottom:0;max-height:72vh;background:var(--bg);border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.18);z-index:2000;display:none;flex-direction:column}
-#sheet .hd{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
-#sheet .hd h2{font-size:18px;margin:0 30px 2px 0}
-#sheet .hd .addr{color:var(--muted);font-size:13px}
-#sheet .hd .links{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-#sheet .hd .links a,#sheet .hd .links button{font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--fg);background:var(--bg)}
-#sheet .x{position:absolute;right:8px;top:8px;border:0;background:none;font-size:22px;padding:4px 10px}
-#sheet .bd{overflow:auto;padding:0 14px 20px}
-.approx{color:var(--warn);font-size:13px;margin-top:4px}
-.fl{padding:10px 0;border-bottom:1px solid var(--line)}
-.fl .t{font-weight:700}
-.fl .m{color:var(--muted);font-size:13px}
-.fl .fno{display:inline-block;min-width:44px;margin-right:8px;font-weight:700;color:var(--accent)}
-.st{display:flex;gap:6px;margin-top:6px}
-.st button{flex:1;padding:7px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:13px}
-.st button.on[data-s="same"]{background:var(--ok);border-color:var(--ok);color:#fff}
-.st button.on[data-s="changed"]{background:var(--warn);border-color:var(--warn);color:#fff}
-.st button.on[data-s="vacant"]{background:var(--bad);border-color:var(--bad);color:#fff}
-.ex{display:none;margin-top:6px}
-.ex input{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--soft);margin-top:4px}
-.fl.open .ex{display:block}
-.addrow{margin-top:12px;width:100%;padding:10px;border:1px dashed var(--line);border-radius:8px;background:var(--bg)}
-.legend{background:var(--bg);color:var(--fg);padding:6px 8px;border-radius:8px;font-size:12px;line-height:1.6;border:1px solid var(--line)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-.leaflet-container{background:var(--soft)}
-.off-pin{background:var(--office);color:#fff;border-radius:8px;padding:3px 6px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+#main{flex:1;min-height:0;position:relative}
+#map,#list{position:absolute;inset:0}
+#map{z-index:0}
+#list{z-index:1}
+#list{overflow:auto;display:none;background:var(--bg);padding-bottom:20px}
+.li{display:flex;align-items:center;gap:12px;padding:14px 14px;border-bottom:1px solid var(--line)}
+.li .dot{width:14px;height:14px;border-radius:50%;flex:none}
+.li .nm{font-weight:700}
+.li .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.li .r{margin-left:auto;text-align:right;font-size:13px;color:var(--muted);flex:none}
+#tabs{display:flex;border-top:1px solid var(--line);background:var(--bg);padding-bottom:var(--safe-b)}
+#tabs button{flex:1;padding:12px 0;border:0;background:none;font-size:15px;color:var(--muted)}
+#tabs button.on{color:var(--fg);font-weight:700;box-shadow:inset 0 3px 0 var(--fg)}
+.legend{background:var(--bg);color:var(--fg);padding:7px 9px;border-radius:10px;font-size:12px;line-height:1.7;border:1px solid var(--line)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.leaflet-container{background:var(--soft);font-family:inherit}
+.off-pin{background:var(--office);color:#fff;border-radius:10px;padding:4px 8px;font-size:13px;font-weight:700;white-space:nowrap;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4)}
+
+/* 건물 화면 (전체) */
+#bv{position:fixed;inset:0;background:var(--bg);z-index:3000;display:none;flex-direction:column}
+#bvh{padding:calc(8px + var(--safe-t)) 12px 10px;border-bottom:1px solid var(--line)}
+#bvh .tl{display:flex;align-items:flex-start;gap:6px}
+#back{border:0;background:none;font-size:28px;line-height:1;padding:2px 10px 6px 0}
+#bvh h2{font-size:19px;margin:4px 0 2px;line-height:1.3}
+#bvh .addr{color:var(--muted);font-size:13px}
+#bvh .approx{color:var(--warn);font-size:13px;margin-top:4px}
+#bvh .links{display:flex;gap:6px;margin-top:10px}
+#bvh .links a,#bvh .links button{flex:1;text-align:center;font-size:14px;padding:10px 0;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--fg);background:var(--bg)}
+#bvh .bp{margin-top:10px;font-size:14px;color:var(--muted)}
+#bvh .bp b{color:var(--fg)}
+#bvb{flex:1;overflow:auto;padding:0 0 calc(30px + var(--safe-b))}
+.fg{border-bottom:8px solid var(--soft)}
+.fh{position:sticky;top:0;background:var(--bg);padding:10px 14px 6px;font-weight:700;color:var(--accent);font-size:15px;border-bottom:1px solid var(--line);z-index:2;display:flex;justify-content:space-between}
+.fh span{color:var(--muted);font-weight:400;font-size:13px}
+.tr{padding:12px 14px;border-bottom:1px solid var(--line)}
+.tr:last-child{border-bottom:0}
+.tr .t{font-weight:700;font-size:17px;line-height:1.35}
+.tr .m{color:var(--muted);font-size:13px;margin-top:2px}
+.seg{display:flex;gap:6px;margin-top:10px}
+.seg button{flex:1;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:15px}
+.seg button.on[data-s="same"]{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700}
+.seg button.on[data-s="changed"]{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700}
+.seg button.on[data-s="vacant"]{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:700}
+.ex{display:none;margin-top:8px}
+.tr.open .ex{display:block}
+.ex input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);margin-top:6px;font-size:16px}
+.etc{padding:10px 14px;color:var(--muted);font-size:14px}
+.etc summary{padding:4px 0}
+.etc div{padding:6px 0;border-top:1px solid var(--line)}
+.added{padding:12px 14px;border-bottom:1px solid var(--line)}
+.added .t{font-weight:700}
+.addbtn{display:block;margin:16px 14px;width:calc(100% - 28px);padding:14px;border:1px dashed var(--muted);border-radius:10px;background:var(--bg);font-size:15px}
+.empty{padding:30px 14px;color:var(--muted);text-align:center}
+
+/* 메뉴 */
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:4000;display:none;align-items:flex-end}
+#sheet .box{width:100%;background:var(--bg);border-radius:16px 16px 0 0;padding:8px 0 calc(10px + var(--safe-b))}
+#sheet button{display:block;width:100%;text-align:left;padding:16px 20px;border:0;background:none;font-size:16px}
+#sheet button.danger{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -75,27 +115,38 @@ button,input,select{font:inherit;color:inherit}
   <form id="lockform" autocomplete="off">
     <h1>현장 체크 지도</h1>
     <p>비밀번호를 입력하세요. 이 기기는 2주 동안 기억돼요.</p>
-    <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
+    <input id="pw" type="password" inputmode="numeric" placeholder="비밀번호" autocomplete="current-password">
     <button type="submit" id="go">열기</button>
     <div id="lockmsg"></div>
   </form>
 </div>
 
 <div id="app">
-  <div id="top" style="position:relative">
+  <div id="top">
     <div id="row1">
       <input id="q" type="search" placeholder="건물·임차인 검색">
-      <button class="ib" id="me" title="내 위치">📍</button>
-      <button class="ib" id="menu">⋯</button>
+      <button class="ib" id="me" aria-label="내 위치">📍</button>
+      <button class="ib" id="menu" aria-label="메뉴">⋯</button>
     </div>
     <div id="results"></div>
     <div id="chips"></div>
     <div id="prog"></div>
   </div>
-  <div id="map"></div>
+  <div id="main"><div id="map"></div><div id="list"></div></div>
+  <div id="tabs"><button class="on" data-t="map">🗺️ 지도</button><button data-t="list">📋 목록</button></div>
 </div>
 
-<div id="sheet"><button class="x" id="close">×</button><div class="hd" id="shd"></div><div class="bd" id="sbd"></div></div>
+<div id="bv">
+  <div id="bvh"></div>
+  <div id="bvb"></div>
+</div>
+
+<div id="sheet"><div class="box">
+  <button data-a="csv">📥 체크 결과 엑셀(CSV)로 받기</button>
+  <button data-a="lock">🔒 잠그기 (비밀번호 다시 입력)</button>
+  <button data-a="clear" class="danger">🗑️ 이 기기 체크 기록 전부 지우기</button>
+  <button data-a="close">닫기</button>
+</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -103,13 +154,12 @@ const KEY_STORE='fcm_key_v1', CHECK_STORE='fcm_checks_v1', REMEMBER_DAYS=14;
 const $=s=>document.querySelector(s);
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const ub64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
-let ENC=null, DATA=null, map, markers={}, filterSub='전체';
-let checks={};
+let ENC=null, DATA=null, map, markers={}, filterSub='전체', cur=null, checks={};
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
 
-async function loadEnc(){ if(!ENC){ const r=await fetch('data.enc.json',{cache:'no-cache'}); ENC=await r.json(); } return ENC; }
+async function loadEnc(){ if(!ENC){ const r=await fetch('data.enc.json?v='+Date.now(),{cache:'no-store'}); ENC=await r.json(); } return ENC; }
 async function deriveKey(pw,enc){
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
   return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(enc.salt),iterations:enc.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},true,['decrypt']);
@@ -133,41 +183,41 @@ $('#lockform').addEventListener('submit',async e=>{
   e.preventDefault(); $('#lockmsg').textContent=''; $('#go').textContent='여는 중…';
   try{
     const enc=await loadEnc();
-    const key=await deriveKey($('#pw').value,enc);
+    const key=await deriveKey($('#pw').value.trim(),enc);
     DATA=await decryptWith(key,enc);
     const raw=await crypto.subtle.exportKey('raw',key);
     lsSet(KEY_STORE,JSON.stringify({k:ub64(raw),salt:enc.salt,exp:Date.now()+REMEMBER_DAYS*864e5}));
-    start();
+    $('#pw').blur(); start();
   }catch(err){ $('#lockmsg').textContent='비밀번호가 맞지 않아요.'; }
   $('#go').textContent='열기';
 });
 
-function ckKey(bid,i){return bid+':'+i}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtA=a=>a?Math.round(a).toLocaleString()+'㎡':'';
+const today=()=>new Date().toISOString().slice(0,10);
+const ck=(bid,i)=>bid+':'+i;
 function saveChecks(){ lsSet(CHECK_STORE,JSON.stringify(checks)); }
-function bStatus(b){
-  const rows=b.floors.map((_,i)=>i).filter(i=>b.floors[i].t);
-  const extra=(checks['add:'+b.id]||[]).length;
-  if(!rows.length) return extra?'done':'none';
-  const n=rows.filter(i=>checks[ckKey(b.id,i)]&&checks[ckKey(b.id,i)].s).length;
-  return n===0?'none':(n===rows.length?'done':'part');
-}
-const COL={none:'var(--accent)',part:'var(--warn)',done:'var(--ok)'};
 function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
-function colorOf(st){return cssv(COL[st].slice(4,-1))}
+const STC={none:'--accent',part:'--warn',done:'--ok'};
+const colorOf=st=>cssv(STC[st]);
+function tenantIdx(b){return b.floors.map((r,i)=>r.t?i:-1).filter(i=>i>=0)}
+function counts(b){const ids=tenantIdx(b); const n=ids.filter(i=>checks[ck(b.id,i)]&&checks[ck(b.id,i)].s).length; return [n,ids.length]}
+function bStatus(b){const [n,t]=counts(b); if(!t) return (checks['add:'+b.id]||[]).length?'done':'none'; return n===0?'none':(n===t?'done':'part');}
+function dist(a,b){const R=6371,t=Math.PI/180,dl=(b.lat-a.lat)*t,dn=(b.lon-a.lon)*t;const x=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+let origin=null;
 
 function start(){
   try{checks=JSON.parse(lsGet(CHECK_STORE)||'{}')}catch(e){checks={}}
+  origin={lat:DATA.office.lat,lon:DATA.office.lon,label:'회사에서'};
   $('#lock').style.display='none'; $('#app').style.display='flex';
-  map=L.map('map',{zoomControl:false}).setView([DATA.office.lat,DATA.office.lon],15);
+  map=L.map('map',{zoomControl:false,tap:true}).setView([DATA.office.lat,DATA.office.lon],15);
   L.control.zoom({position:'bottomright'}).addTo(map);
-  map.on('click',()=>$('#sheet').style.display='none');
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
   const o=DATA.office;
-  L.marker([o.lat,o.lon],{icon:L.divIcon({className:'',html:'<div class="off-pin">🏢 회사</div>',iconSize:[60,24],iconAnchor:[30,12]}),zIndexOffset:1000})
-    .addTo(map).bindPopup('<b>'+o.name+'</b><br>'+o.addr);
+  L.marker([o.lat,o.lon],{icon:L.divIcon({className:'',html:'<div class="off-pin">🏢 회사</div>',iconSize:[66,28],iconAnchor:[33,14]}),zIndexOffset:1000}).addTo(map);
   DATA.buildings.forEach(b=>{
-    const m=L.circleMarker([b.lat,b.lon],{bubblingMouseEvents:false,radius:9,weight:2,color:'#fff',fillOpacity:.95,dashArray:null});
-    m.on('click',()=>openSheet(b)); m.bindTooltip(b.name,{direction:'top',offset:[0,-8]});
+    const m=L.circleMarker([b.lat,b.lon],{bubblingMouseEvents:false,radius:12,weight:2,color:'#fff',fillOpacity:.95});
+    m.on('click',e=>{L.DomEvent.stop(e); openB(b);});
     markers[b.id]=m; m.addTo(map);
   });
   const lg=L.control({position:'bottomleft'});
@@ -178,97 +228,134 @@ function start(){
   $('#chips').onclick=e=>{const s=e.target.dataset.s; if(!s) return; filterSub=s; document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.s===s)); refresh(true);};
   refresh(false);
 }
+function visible(b){return filterSub==='전체'||b.sub===filterSub}
 function refresh(fit){
   let done=0,shown=[];
   DATA.buildings.forEach(b=>{
     const st=bStatus(b); if(st==='done') done++;
     const m=markers[b.id];
-    m.setStyle({fillColor:colorOf(st),color:b.prec==='exact'?'#fff':cssv('--fg'),dashArray:b.prec==='exact'?null:'3 3',weight:b.prec==='exact'?2:1.5});
-    const vis=filterSub==='전체'||b.sub===filterSub;
-    if(vis){ if(!map.hasLayer(m)) m.addTo(map); shown.push([b.lat,b.lon]); } else if(map.hasLayer(m)) map.removeLayer(m);
+    m.setStyle({fillColor:colorOf(st),color:b.prec==='exact'?'#fff':cssv('--fg'),dashArray:b.prec==='exact'?null:'4 3',weight:b.prec==='exact'?2.5:1.8});
+    if(visible(b)){ if(!map.hasLayer(m)) m.addTo(map); shown.push([b.lat,b.lon]); } else if(map.hasLayer(m)) map.removeLayer(m);
   });
-  $('#prog').innerHTML='확인 끝 <b>'+done+'</b> / '+DATA.buildings.length+'개 건물 · 기준 '+DATA.updated;
+  $('#prog').innerHTML='확인 끝 <b>'+done+'</b> / '+DATA.buildings.length+'개 건물';
   if(fit&&shown.length) map.fitBounds(shown,{padding:[30,30],maxZoom:16});
+  if($('#list').style.display==='block') renderList();
 }
-function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function fmtA(a){return a?Math.round(a).toLocaleString()+'㎡':''}
-function openSheet(b){
-  const q=encodeURIComponent(b.addr);
-  $('#shd').innerHTML='<h2>'+esc(b.name)+'</h2><div class="addr">'+esc(b.sub)+' · '+esc(b.addr)+(b.approved?' · 사용승인 '+esc(b.approved):'')+'</div>'+
-    (b.prec!=='exact'?'<div class="approx">지도 위치는 대략이에요. 길찾기 버튼으로 가세요.</div>':'')+
-    '<div class="links"><a href="https://map.kakao.com/link/search/'+q+'" target="_blank" rel="noopener">카카오맵</a><a href="https://map.naver.com/p/search/'+q+'" target="_blank" rel="noopener">네이버지도</a><button id="zoomto">여기로 이동</button></div>';
-  $('#zoomto').onclick=()=>map.setView([b.lat,b.lon],17);
-  let h='', last=null;
-  b.floors.forEach((r,i)=>{
-    const c=checks[ckKey(b.id,i)]||{};
-    const tenant=r.t||'<span class="m">('+esc(r.p||'용도 미기재')+')</span>';
-    h+='<div class="fl'+(c.s&&c.s!=='same'?' open':'')+'" data-i="'+i+'"><div><span class="fno">'+esc(r.f)+'</span><span class="t">'+(r.t?esc(r.t):tenant)+'</span></div>'+
-      '<div class="m">'+[r.ind,r.p,fmtA(r.ra)].filter(Boolean).map(esc).join(' · ')+'</div>'+
-      (r.t?'<div class="st"><button data-s="same"'+(c.s==='same'?' class="on"':'')+'>그대로</button><button data-s="changed"'+(c.s==='changed'?' class="on"':'')+'>바뀜</button><button data-s="vacant"'+(c.s==='vacant'?' class="on"':'')+'>공실</button></div>'+
-      '<div class="ex"><input data-k="nt" placeholder="새 임차인 이름" value="'+esc(c.nt)+'"><input data-k="memo" placeholder="메모" value="'+esc(c.memo)+'"></div>':'')+
-      '</div>';
-  });
-  (checks['add:'+b.id]||[]).forEach((a,j)=>{
-    h+='<div class="fl open"><div><span class="fno">'+esc(a.f)+'</span><span class="t">'+esc(a.t)+'</span> <span class="m">(새로 추가)</span></div><div class="m">'+esc(a.memo||'')+'</div><button class="ib" data-del="'+j+'" style="margin-top:6px;font-size:13px">삭제</button></div>';
-  });
-  h+='<button class="addrow" id="addrow">+ 엑셀에 없는 임차인 추가</button>';
-  $('#sbd').innerHTML=h; $('#sbd').scrollTop=0;
-  $('#sbd').onclick=e=>{
-    const del=e.target.dataset.del;
-    if(del!==undefined){ const arr=checks['add:'+b.id]||[]; arr.splice(+del,1); checks['add:'+b.id]=arr; saveChecks(); openSheet(b); refresh(false); return; }
-    if(e.target.id==='addrow'){ const f=prompt('층 (예: 5층)'); if(f===null) return; const t=prompt('임차인 이름'); if(!t) return; const memo=prompt('메모 (없으면 비워 두기)')||'';
-      (checks['add:'+b.id]=checks['add:'+b.id]||[]).push({f,t,memo,d:new Date().toISOString().slice(0,10)}); saveChecks(); openSheet(b); refresh(false); return; }
-    const s=e.target.dataset.s; if(!s) return;
-    const row=e.target.closest('.fl'); const i=row.dataset.i; const k=ckKey(b.id,i);
-    const c=checks[k]||{}; c.s=(c.s===s)?undefined:s; c.d=new Date().toISOString().slice(0,10);
-    if(!c.s) delete checks[k]; else checks[k]=c; saveChecks();
-    row.querySelectorAll('.st button').forEach(x=>x.classList.toggle('on',x.dataset.s===c.s));
-    row.classList.toggle('open',!!c.s&&c.s!=='same'); refresh(false);
-  };
-  $('#sbd').oninput=e=>{
-    const k2=e.target.dataset.k; if(!k2) return; const i=e.target.closest('.fl').dataset.i; const k=ckKey(b.id,i);
-    const c=checks[k]||{s:'changed'}; c[k2]=e.target.value; c.d=new Date().toISOString().slice(0,10); checks[k]=c; saveChecks();
-  };
-  $('#sheet').style.display='flex';
+function renderList(){
+  const arr=DATA.buildings.filter(visible).map(b=>({b,d:dist(origin,b)})).sort((x,y)=>x.d-y.d);
+  $('#list').innerHTML='<div class="etc">'+esc(origin.label)+' 가까운 순</div>'+arr.map(({b,d})=>{const [n,t]=counts(b);
+    return '<div class="li" data-id="'+b.id+'"><span class="dot" style="background:'+colorOf(bStatus(b))+'"></span><div style="min-width:0"><div class="nm">'+esc(b.name)+'</div><div class="sub">'+esc(b.sub)+' · '+esc(b.addr)+'</div></div><div class="r">'+(d<1?Math.round(d*1000)+'m':d.toFixed(1)+'km')+'<br>'+n+'/'+t+'</div></div>'}).join('');
 }
-$('#close').onclick=()=>$('#sheet').style.display='none';
+$('#list').onclick=e=>{const d=e.target.closest('.li'); if(!d) return; openB(DATA.buildings.find(b=>b.id==d.dataset.id));};
+$('#tabs').onclick=e=>{const t=e.target.dataset.t; if(!t) return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  $('#list').style.display=t==='list'?'block':'none'; if(t==='list') renderList(); else map.invalidateSize();};
 
+/* 건물 화면 */
+function openB(b){
+  cur=b; const q=encodeURIComponent(b.addr);
+  history.pushState({bv:1},'');
+  renderHead();
+  // 층별 묶기
+  const groups=[]; let g=null;
+  b.floors.forEach((r,i)=>{ if(!g||g.f!==r.f){ g={f:r.f,ten:[],etc:[]}; groups.push(g);} (r.t?g.ten:g.etc).push(i); });
+  let h='';
+  const etcAll=[];
+  groups.forEach(g=>{
+    if(!g.ten.length){ g.etc.forEach(i=>etcAll.push(i)); return; }
+    h+='<div class="fg"><div class="fh">'+esc(g.f)+'<span>임차인 '+g.ten.length+'</span></div>';
+    g.ten.forEach(i=>{const r=b.floors[i], c=checks[ck(b.id,i)]||{};
+      h+='<div class="tr'+(c.s&&c.s!=='same'?' open':'')+'" data-i="'+i+'"><div class="t">'+esc(r.t)+'</div><div class="m">'+[r.ind,r.p,fmtA(r.ra)].filter(Boolean).map(esc).join(' · ')+'</div>'+
+        '<div class="seg"><button data-s="same"'+(c.s==='same'?' class="on"':'')+'>그대로</button><button data-s="changed"'+(c.s==='changed'?' class="on"':'')+'>바뀜</button><button data-s="vacant"'+(c.s==='vacant'?' class="on"':'')+'>공실</button></div>'+
+        '<div class="ex"><input data-k="nt" placeholder="새 임차인 이름" value="'+esc(c.nt)+'"><input data-k="memo" placeholder="메모" value="'+esc(c.memo)+'"></div></div>';});
+    if(g.etc.length) h+='<div class="etc">'+g.etc.map(i=>esc(b.floors[i].p||'기타')).join(', ')+'</div>';
+    h+='</div>';
+  });
+  if(!h) h='<div class="empty">이 건물은 엑셀에 임차인 이름이 없어요.<br>현장에서 보이는 임차인을 아래에서 추가하세요.</div>';
+  if(etcAll.length){
+    h+='<details class="etc"><summary>임차인 없는 공간 '+etcAll.length+'개 (기계실·주차장 등)</summary>'+etcAll.map(i=>{const r=b.floors[i];return '<div><b>'+esc(r.f)+'</b> '+esc(r.p||'')+' '+fmtA(r.ra)+'</div>'}).join('')+'</details>';
+  }
+  const added=checks['add:'+b.id]||[];
+  if(added.length){ h+='<div class="fg"><div class="fh">새로 추가한 임차인<span>'+added.length+'</span></div>'+added.map((a,j)=>'<div class="added"><div class="t">'+esc(a.f)+' · '+esc(a.t)+'</div><div class="m">'+esc(a.memo||'')+'</div><button class="ib" data-del="'+j+'" style="margin-top:8px;height:38px;font-size:14px">삭제</button></div>').join('')+'</div>'; }
+  h+='<button class="addbtn" id="addrow">+ 엑셀에 없는 임차인 추가</button>';
+  $('#bvb').innerHTML=h; $('#bvb').scrollTop=0;
+  $('#bv').style.display='flex';
+}
+function renderHead(){
+  const b=cur, q=encodeURIComponent(b.addr), [n,t]=counts(b);
+  $('#bvh').innerHTML='<div class="tl"><button id="back" aria-label="뒤로">‹</button><div style="min-width:0"><h2>'+esc(b.name)+'</h2><div class="addr">'+esc(b.sub)+' · '+esc(b.addr)+(b.approved?' · '+esc(b.approved)+' 준공':'')+'</div>'+
+    (b.prec!=='exact'?'<div class="approx">지도 위치는 대략이에요. 길찾기로 가세요.</div>':'')+'</div></div>'+
+    '<div class="links"><a href="https://map.kakao.com/link/search/'+q+'" target="_blank" rel="noopener">카카오맵</a><a href="https://map.naver.com/p/search/'+q+'" target="_blank" rel="noopener">네이버지도</a><button id="onmap">지도에서</button></div>'+
+    '<div class="bp">확인 <b>'+n+'</b> / '+t+'명</div>';
+  $('#back').onclick=()=>history.back();
+  $('#onmap').onclick=()=>{history.back(); setTimeout(()=>{ $('#tabs button[data-t=map]').click(); map.setView([b.lat,b.lon],17); },50);};
+}
+function closeB(){ $('#bv').style.display='none'; cur=null; refresh(false); }
+window.addEventListener('popstate',()=>{ if($('#bv').style.display==='flex') closeB(); });
+
+$('#bvb').addEventListener('click',e=>{
+  const b=cur; if(!b) return;
+  const del=e.target.dataset.del;
+  if(del!==undefined){ const arr=checks['add:'+b.id]||[]; arr.splice(+del,1); checks['add:'+b.id]=arr; saveChecks(); history.replaceState({bv:1},''); reopen(); return; }
+  if(e.target.id==='addrow'){ const f=prompt('몇 층인가요? (예: 5층)'); if(f===null) return; const t=prompt('임차인 이름'); if(!t) return; const memo=prompt('메모 (없으면 비워 두세요)')||'';
+    (checks['add:'+b.id]=checks['add:'+b.id]||[]).push({f,t,memo,d:today()}); saveChecks(); reopen(); return; }
+  const s=e.target.dataset.s; if(!s) return;
+  const row=e.target.closest('.tr'); const k=ck(b.id,row.dataset.i);
+  const c=checks[k]||{}; c.s=(c.s===s)?undefined:s; c.d=today();
+  if(!c.s&&!c.nt&&!c.memo) delete checks[k]; else checks[k]=c; saveChecks();
+  row.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x.dataset.s===c.s));
+  row.classList.toggle('open',!!c.s&&c.s!=='same');
+  renderHead();
+});
+function reopen(){ const b=cur; const st=$('#bvb').scrollTop; history.back(); setTimeout(()=>{openB(b); $('#bvb').scrollTop=st;},30); }
+$('#bvb').addEventListener('input',e=>{
+  const k2=e.target.dataset.k; if(!k2) return; const k=ck(cur.id,e.target.closest('.tr').dataset.i);
+  const c=checks[k]||{s:'changed'}; c[k2]=e.target.value; c.d=today(); checks[k]=c; saveChecks();
+});
+
+/* 검색 */
 $('#q').addEventListener('input',()=>{
   const v=$('#q').value.trim().toLowerCase(); const box=$('#results');
-  if(v.length<1){box.style.display='none';return}
+  if(!v){box.style.display='none';return}
   const out=[];
   DATA.buildings.forEach(b=>{
     if(b.name.toLowerCase().includes(v)||b.addr.includes(v)) out.push({b,txt:b.name,sub:b.addr});
-    else{ const hit=b.floors.find(r=>r.t&&String(r.t).toLowerCase().includes(v)); if(hit) out.push({b,txt:hit.t,sub:b.name+' '+hit.f}); }
+    b.floors.forEach(r=>{ if(r.t&&String(r.t).toLowerCase().includes(v)) out.push({b,txt:r.t,sub:b.name+' · '+r.f}); });
   });
-  box.innerHTML=out.slice(0,30).map((o,i)=>'<div data-i="'+i+'">'+esc(o.txt)+'<br><small>'+esc(o.sub)+'</small></div>').join('')||'<div><small>결과 없음</small></div>';
+  box.innerHTML=out.slice(0,40).map((o,i)=>'<div data-i="'+i+'">'+esc(o.txt)+'<br><small>'+esc(o.sub)+'</small></div>').join('')||'<div><small>결과 없음</small></div>';
   box.style.display='block';
-  box.onclick=e=>{const d=e.target.closest('div[data-i]'); if(!d) return; const b=out[+d.dataset.i].b; box.style.display='none'; map.setView([b.lat,b.lon],17); openSheet(b);};
+  box.onclick=e=>{const d=e.target.closest('div[data-i]'); if(!d) return; box.style.display='none'; $('#q').blur(); openB(out[+d.dataset.i].b);};
 });
+$('#q').addEventListener('blur',()=>setTimeout(()=>$('#results').style.display='none',200));
+
 $('#me').onclick=()=>{
   if(!navigator.geolocation){alert('이 기기는 위치를 못 써요');return}
   navigator.geolocation.getCurrentPosition(p=>{const ll=[p.coords.latitude,p.coords.longitude];
     if(window._me) map.removeLayer(window._me);
-    window._me=L.circleMarker(ll,{radius:7,color:'#fff',weight:3,fillColor:'#0ea5e9',fillOpacity:1}).addTo(map); map.setView(ll,16);},
+    window._me=L.circleMarker(ll,{radius:8,color:'#fff',weight:3,fillColor:'#0ea5e9',fillOpacity:1}).addTo(map);
+    origin={lat:ll[0],lon:ll[1],label:'내 위치에서'};
+    if($('#list').style.display==='block') renderList(); else map.setView(ll,16);},
     ()=>alert('위치 권한을 허용해 주세요'),{enableHighAccuracy:true,timeout:10000});
 };
-$('#menu').onclick=()=>{
-  const c=prompt('1: 체크 결과 엑셀(CSV)로 받기\n2: 체크 기록 전부 지우기\n3: 잠그기 (비밀번호 다시 입력)\n번호를 입력하세요');
-  if(c==='1') exportCsv();
-  else if(c==='2'){ if(confirm('이 기기의 체크 기록을 전부 지울까요?')){checks={};saveChecks();refresh(false);} }
-  else if(c==='3'){ lsDel(KEY_STORE); location.reload(); }
+$('#menu').onclick=()=>$('#sheet').style.display='flex';
+$('#sheet').onclick=e=>{
+  const a=e.target.dataset.a; if(e.target.id==='sheet'||a==='close'){$('#sheet').style.display='none';return}
+  if(a==='csv') exportCsv();
+  if(a==='lock'){ lsDel(KEY_STORE); location.reload(); }
+  if(a==='clear'&&confirm('이 기기의 체크 기록을 전부 지울까요? 되돌릴 수 없어요.')){checks={};saveChecks();refresh(false);}
+  $('#sheet').style.display='none';
 };
 function exportCsv(){
   const rows=[['건물ID','권역','건물명','주소','층','엑셀 임차인','상태','새 임차인','메모','확인일']];
   const lab={same:'그대로',changed:'바뀜',vacant:'공실'};
   DATA.buildings.forEach(b=>{
-    b.floors.forEach((r,i)=>{const c=checks[ckKey(b.id,i)]; if(c&&(c.s||c.nt||c.memo)) rows.push([b.id,b.sub,b.name,b.addr,r.f,r.t||'',lab[c.s]||'',c.nt||'',c.memo||'',c.d||'']);});
+    b.floors.forEach((r,i)=>{const c=checks[ck(b.id,i)]; if(c&&(c.s||c.nt||c.memo)) rows.push([b.id,b.sub,b.name,b.addr,r.f,r.t||'',lab[c.s]||'',c.nt||'',c.memo||'',c.d||'']);});
     (checks['add:'+b.id]||[]).forEach(a=>rows.push([b.id,b.sub,b.name,b.addr,a.f,'','신규 추가',a.t,a.memo||'',a.d||'']));
   });
   if(rows.length===1){alert('아직 체크한 게 없어요');return}
   const csv='﻿'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='현장체크_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  a.download='현장체크_'+today()+'.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
 (async()=>{ if(await tryRemembered()) start(); })();
 </script>
