@@ -1,0 +1,7 @@
+# 회사 자료(평문)는 절대 올리지 않기
+*.xlsx
+*.xls
+*.csv
+*.json
+!data.enc.json
+__pycache__/
