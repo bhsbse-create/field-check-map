@@ -166,7 +166,7 @@ function start(){
   L.marker([o.lat,o.lon],{icon:L.divIcon({className:'',html:'<div class="off-pin">🏢 회사</div>',iconSize:[60,24],iconAnchor:[30,12]}),zIndexOffset:1000})
     .addTo(map).bindPopup('<b>'+o.name+'</b><br>'+o.addr);
   DATA.buildings.forEach(b=>{
-    const m=L.circleMarker([b.lat,b.lon],{radius:9,weight:2,color:'#fff',fillOpacity:.95,dashArray:null});
+    const m=L.circleMarker([b.lat,b.lon],{bubblingMouseEvents:false,radius:9,weight:2,color:'#fff',fillOpacity:.95,dashArray:null});
     m.on('click',()=>openSheet(b)); m.bindTooltip(b.name,{direction:'top',offset:[0,-8]});
     markers[b.id]=m; m.addTo(map);
   });
